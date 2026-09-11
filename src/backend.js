@@ -246,6 +246,24 @@ class DRBackend {
       const key = typeof image === 'string' ? image : 'moderate';
       return DEMO_CASES[key]?.quality || DEMO_CASES.moderate.quality;
     }
+    if (this.mode === 'python') {
+      const formData = new FormData();
+      formData.append('image', image);
+
+      const response = await fetch(`${this.pythonEndpoint}/screen`, {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const errText = await response.text();
+        throw new Error(`Python backend error: ${response.status} ${errText || ''}`.trim());
+      }
+
+      const result = await response.json();
+      if (!result.quality) throw new Error('Python backend response did not include image quality.');
+      return result.quality;
+    }
     return this._apiCall('/quality', { image });
   }
 
