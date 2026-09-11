@@ -15,6 +15,7 @@ Run this in a Colab cell:
 
 ```python
 !pip install flask flask-cors pillow tensorflow
+!wget -q -O /content/colab_model_api.py https://raw.githubusercontent.com/saichandh932/RetinaXAI/main/colab_model_api.py
 
 from google.colab import files
 
@@ -48,7 +49,7 @@ MODEL_PATH=/content/model.keras python colab_model_api.py
 In the app, the default backend URL is set to:
 
 ```js
-http://localhost:5001/api
+https://untie-exposure-kilobyte.ngrok-free.dev/api
 ```
 
 For a Colab server, set the real public URL in the Settings page or in `src/backend.js`:
