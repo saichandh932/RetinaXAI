@@ -23,8 +23,25 @@ export default function QueuePage() {
   const navigate = useNavigate()
   const [sortField, setSortField] = useState('priority')
   const [filterPriority, setFilterPriority] = useState('ALL')
+  const [reviewedIds, setReviewedIds] = useState(() => {
+    try {
+      return JSON.parse(localStorage.getItem('dr_reviewed_queue_ids') || '[]')
+    } catch {
+      return []
+    }
+  })
 
-  const sorted = [...QUEUE_DATA]
+  React.useEffect(() => {
+    const handleReviewCompleted = event => {
+      setReviewedIds(previous => previous.includes(event.detail) ? previous : [...previous, event.detail])
+    }
+    window.addEventListener('dr-review-completed', handleReviewCompleted)
+    return () => window.removeEventListener('dr-review-completed', handleReviewCompleted)
+  }, [])
+
+  const pendingRows = QUEUE_DATA.filter(row => !reviewedIds.includes(row.id))
+
+  const sorted = [...pendingRows]
     .filter(r => filterPriority === 'ALL' || r.priority === filterPriority)
     .sort((a, b) => {
       if (sortField === 'priority') return PRIORITY_ORDER[a.priority] - PRIORITY_ORDER[b.priority]
@@ -39,8 +56,8 @@ export default function QueuePage() {
         <div>
           <h1 className="page-title">Ophthalmologist Review Queue</h1>
           <p className="page-subtitle">
-            {QUEUE_DATA.filter(r => r.status === 'PENDING').length} cases pending ·{' '}
-            {QUEUE_DATA.filter(r => r.priority === 'HIGH').length} high priority
+            {pendingRows.filter(r => r.status === 'PENDING').length} cases pending ·{' '}
+            {pendingRows.filter(r => r.priority === 'HIGH').length} high priority
           </p>
         </div>
         <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
@@ -58,12 +75,12 @@ export default function QueuePage() {
       </div>
 
       {/* High Priority Alert */}
-      {QUEUE_DATA.filter(r => r.priority === 'HIGH' && r.status === 'PENDING').length > 0 && (
+      {pendingRows.filter(r => r.priority === 'HIGH' && r.status === 'PENDING').length > 0 && (
         <div className="alert alert-danger" style={{ marginBottom: 20 }}>
           <AlertTriangle size={16} className="alert-icon" />
           <div className="alert-content">
             <div className="alert-title">
-              ⚠ {QUEUE_DATA.filter(r => r.priority === 'HIGH' && r.status === 'PENDING').length} HIGH PRIORITY cases require urgent review
+              ⚠ {pendingRows.filter(r => r.priority === 'HIGH' && r.status === 'PENDING').length} HIGH PRIORITY cases require urgent review
             </div>
             <div className="alert-body">
               Cases with Severe NPDR (Level 3) or Proliferative DR (Level 4) are marked high priority.
@@ -112,7 +129,7 @@ export default function QueuePage() {
             {sorted.map(row => (
               <tr key={row.id}
                 style={{ cursor: 'pointer', borderLeft: row.priority === 'HIGH' ? '3px solid var(--color-danger)' : 'none' }}
-                onClick={() => navigate('/review')}
+                onClick={() => navigate('/review', { state: { screeningId: row.id } })}
               >
                 <td style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--text-xs)', color: 'var(--color-primary-light)' }}>
                   {row.id}
@@ -150,7 +167,7 @@ export default function QueuePage() {
                   <Clock size={11} />{row.waiting}
                 </td>
                 <td>
-                  <button className="btn btn-primary btn-sm" onClick={e => { e.stopPropagation(); navigate('/review') }}>
+                  <button className="btn btn-primary btn-sm" onClick={e => { e.stopPropagation(); navigate('/review', { state: { screeningId: row.id } }) }}>
                     Review
                   </button>
                 </td>
@@ -163,9 +180,9 @@ export default function QueuePage() {
       {/* Summary bar */}
       <div style={{ marginTop: 16, display: 'flex', gap: 24, fontSize: 'var(--text-xs)', color: 'var(--text-muted)' }}>
         {[
-          { label: 'Total in queue', value: QUEUE_DATA.length },
-          { label: 'High priority', value: QUEUE_DATA.filter(r => r.priority === 'HIGH').length },
-          { label: 'In review', value: QUEUE_DATA.filter(r => r.status === 'IN REVIEW').length },
+          { label: 'Total in queue', value: pendingRows.length },
+          { label: 'High priority', value: pendingRows.filter(r => r.priority === 'HIGH').length },
+          { label: 'In review', value: pendingRows.filter(r => r.status === 'IN REVIEW').length },
           { label: 'Avg. wait', value: '2h 04min' },
         ].map(s => (
           <div key={s.label} style={{ display: 'flex', gap: 6 }}>

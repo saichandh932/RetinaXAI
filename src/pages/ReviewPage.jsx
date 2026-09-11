@@ -1,5 +1,6 @@
 import React, { useState } from 'react'
 import { useApp } from '../App.jsx'
+import { useLocation } from 'react-router-dom'
 import { CheckCircle, XCircle, MessageSquare, AlertTriangle, Eye } from 'lucide-react'
 import RetinalViewer from '../components/RetinalViewer.jsx'
 
@@ -17,6 +18,7 @@ const OVERRIDE_REASONS = [
 
 export default function ReviewPage() {
   const { screeningData } = useApp()
+  const location = useLocation()
   const [decision, setDecision] = useState(null) // 'accept' | 'override'
   const [overrideGrade, setOverrideGrade] = useState('')
   const [overrideReason, setOverrideReason] = useState('')
@@ -43,13 +45,19 @@ export default function ReviewPage() {
     if (!decision) return
     if (decision === 'override' && (!overrideGrade || !overrideReason)) return
     const finalGrade = decision === 'accept' ? level : parseInt(overrideGrade, 10)
-    localStorage.setItem(`dr_review_${screeningData?.form?.screeningId || 'current'}`, JSON.stringify({
+    const screeningId = location.state?.screeningId || screeningData?.form?.screeningId || 'current'
+    localStorage.setItem(`dr_review_${screeningId}`, JSON.stringify({
       decision,
       finalGrade,
       reason: overrideReason || null,
       comment,
       recordedAt: new Date().toISOString(),
     }))
+    const reviewedIds = JSON.parse(localStorage.getItem('dr_reviewed_queue_ids') || '[]')
+    if (!reviewedIds.includes(screeningId)) {
+      localStorage.setItem('dr_reviewed_queue_ids', JSON.stringify([...reviewedIds, screeningId]))
+      window.dispatchEvent(new CustomEvent('dr-review-completed', { detail: screeningId }))
+    }
     setSubmitted(true)
   }
 

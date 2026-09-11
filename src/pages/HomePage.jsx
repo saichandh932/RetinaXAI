@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useApp } from '../App.jsx'
 import {
@@ -28,8 +28,24 @@ const SEVERITY_COLORS = { 0: 'var(--dr-level-0)', 1: 'var(--dr-level-1)', 2: 'va
 export default function HomePage() {
   const { role } = useApp()
   const navigate = useNavigate()
+  const [reviewedIds, setReviewedIds] = useState(() => {
+    try {
+      return JSON.parse(localStorage.getItem('dr_reviewed_queue_ids') || '[]')
+    } catch {
+      return []
+    }
+  })
   const now = new Date()
   const dateStr = now.toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
+  const pendingReviewCount = RECENT_SCREENINGS.filter(row => row.status === 'PENDING REVIEW' && !reviewedIds.includes(row.id)).length
+
+  useEffect(() => {
+    const handleReviewCompleted = event => {
+      setReviewedIds(previous => previous.includes(event.detail) ? previous : [...previous, event.detail])
+    }
+    window.addEventListener('dr-review-completed', handleReviewCompleted)
+    return () => window.removeEventListener('dr-review-completed', handleReviewCompleted)
+  }, [])
 
   return (
     <div>
@@ -50,16 +66,17 @@ export default function HomePage() {
       <div className="metric-cards" style={{ marginBottom: 24 }}>
         {METRICS.map((m) => {
           const Icon = m.icon
+          const metric = m.label === 'Pending Review' ? { ...m, value: pendingReviewCount } : m
           return (
             <div key={m.label} className="metric-card animate-fade-in-up">
               <div className="metric-card-icon">
-                <div className="metric-card-icon-box" style={{ background: m.bg }}>
-                  <Icon size={18} color={m.color} />
+                <div className="metric-card-icon-box" style={{ background: metric.bg }}>
+                  <Icon size={18} color={metric.color} />
                 </div>
               </div>
-              <div className="metric-card-label">{m.label}</div>
-              <div className="metric-card-value" style={{ color: m.color }}>{m.value}</div>
-              <div className="metric-card-sub">{m.sub}</div>
+              <div className="metric-card-label">{metric.label}</div>
+              <div className="metric-card-value" style={{ color: metric.color }}>{metric.value}</div>
+              <div className="metric-card-sub">{metric.sub}</div>
             </div>
           )
         })}
@@ -92,7 +109,7 @@ export default function HomePage() {
                 </tr>
               </thead>
               <tbody>
-                {RECENT_SCREENINGS.map(row => (
+                {RECENT_SCREENINGS.filter(row => !reviewedIds.includes(row.id)).map(row => (
                   <tr key={row.id} style={{ cursor: 'pointer' }} onClick={() => navigate('/clinical')}>
                     <td style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--text-xs)', color: 'var(--color-primary-light)' }}>{row.id}</td>
                     <td style={{ fontSize: 'var(--text-xs)' }}>{row.time}</td>
@@ -135,7 +152,7 @@ export default function HomePage() {
                 <PlusCircle size={15} /> New Screening
               </button>
               <button className="btn btn-secondary w-full" onClick={() => navigate('/queue')}>
-                <Clock size={15} /> Review Queue <span className="sidebar-nav-badge" style={{ marginLeft: 'auto' }}>7</span>
+                <Clock size={15} /> Review Queue <span className="sidebar-nav-badge" style={{ marginLeft: 'auto' }}>{pendingReviewCount}</span>
               </button>
               <button className="btn btn-secondary w-full" onClick={() => navigate('/report')}>
                 <FileText size={15} /> Reports
