@@ -1,16 +1,7 @@
 import React, { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { AlertTriangle, Clock, ChevronUp, ChevronDown, Filter } from 'lucide-react'
-
-const QUEUE_DATA = [
-  { id: 'SCR-20260909-045', phc: 'PHC Rajnagar',  quality: 'GOOD',       grade: 'Level 3', severity: 'Severe NPDR',    referral: true,  confidence: 88, priority: 'HIGH',   status: 'PENDING',   waiting: '52 min' },
-  { id: 'SCR-20260909-041', phc: 'PHC Korba',     quality: 'GOOD',       grade: 'Level 4', severity: 'Prolif. DR',    referral: true,  confidence: 93, priority: 'HIGH',   status: 'PENDING',   waiting: '1h 24min' },
-  { id: 'SCR-20260909-047', phc: 'PHC Bilaspur',  quality: 'GOOD',       grade: 'Level 2', severity: 'Moderate NPDR', referral: true,  confidence: 91, priority: 'MEDIUM', status: 'PENDING',   waiting: '18 min' },
-  { id: 'SCR-20260909-039', phc: 'PHC Raigarh',   quality: 'ACCEPTABLE', grade: 'Level 2', severity: 'Moderate NPDR', referral: true,  confidence: 79, priority: 'MEDIUM', status: 'PENDING',   waiting: '2h 05min' },
-  { id: 'SCR-20260909-036', phc: 'PHC Ambikapur', quality: 'GOOD',       grade: 'Level 3', severity: 'Severe NPDR',   referral: true,  confidence: 85, priority: 'HIGH',   status: 'PENDING',   waiting: '3h 12min' },
-  { id: 'SCR-20260909-033', phc: 'PHC Jagdalpur', quality: 'GOOD',       grade: 'Level 1', severity: 'Mild NPDR',     referral: false, confidence: 87, priority: 'LOW',    status: 'PENDING',   waiting: '4h 01min' },
-  { id: 'SCR-20260909-028', phc: 'PHC Durg',      quality: 'GOOD',       grade: 'Level 2', severity: 'Moderate NPDR', referral: true,  confidence: 90, priority: 'MEDIUM', status: 'IN REVIEW', waiting: '5h 30min' },
-]
+import { REVIEW_QUEUE, getReviewedQueueIds } from '../data/reviewQueue.js'
 
 const PRIORITY_ORDER = { HIGH: 0, MEDIUM: 1, LOW: 2 }
 const parseWaitMinutes = waiting => {
@@ -24,11 +15,7 @@ export default function QueuePage() {
   const [sortField, setSortField] = useState('priority')
   const [filterPriority, setFilterPriority] = useState('ALL')
   const [reviewedIds, setReviewedIds] = useState(() => {
-    try {
-      return JSON.parse(localStorage.getItem('dr_reviewed_queue_ids') || '[]')
-    } catch {
-      return []
-    }
+    return getReviewedQueueIds()
   })
 
   React.useEffect(() => {
@@ -39,7 +26,7 @@ export default function QueuePage() {
     return () => window.removeEventListener('dr-review-completed', handleReviewCompleted)
   }, [])
 
-  const pendingRows = QUEUE_DATA.filter(row => !reviewedIds.includes(row.id))
+  const pendingRows = REVIEW_QUEUE.filter(row => !reviewedIds.includes(row.id))
 
   const sorted = [...pendingRows]
     .filter(r => filterPriority === 'ALL' || r.priority === filterPriority)

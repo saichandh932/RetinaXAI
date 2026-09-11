@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import { useApp } from '../App.jsx'
-import { useLocation } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { CheckCircle, XCircle, MessageSquare, AlertTriangle, Eye } from 'lucide-react'
 import RetinalViewer from '../components/RetinalViewer.jsx'
 
@@ -19,6 +19,7 @@ const OVERRIDE_REASONS = [
 export default function ReviewPage() {
   const { screeningData } = useApp()
   const location = useLocation()
+  const navigate = useNavigate()
   const [decision, setDecision] = useState(null) // 'accept' | 'override'
   const [overrideGrade, setOverrideGrade] = useState('')
   const [overrideReason, setOverrideReason] = useState('')
@@ -53,7 +54,13 @@ export default function ReviewPage() {
       comment,
       recordedAt: new Date().toISOString(),
     }))
-    const reviewedIds = JSON.parse(localStorage.getItem('dr_reviewed_queue_ids') || '[]')
+    let reviewedIds = []
+    try {
+      const storedIds = JSON.parse(localStorage.getItem('dr_reviewed_queue_ids') || '[]')
+      reviewedIds = Array.isArray(storedIds) ? storedIds : []
+    } catch {
+      reviewedIds = []
+    }
     if (!reviewedIds.includes(screeningId)) {
       localStorage.setItem('dr_reviewed_queue_ids', JSON.stringify([...reviewedIds, screeningId]))
       window.dispatchEvent(new CustomEvent('dr-review-completed', { detail: screeningId }))
@@ -83,7 +90,7 @@ export default function ReviewPage() {
             </div>
           )}
         </div>
-        <button className="btn btn-primary" onClick={() => setSubmitted(false)}>Review Another Case</button>
+        <button className="btn btn-primary" onClick={() => navigate('/queue')}>Review Another Case</button>
       </div>
     )
   }

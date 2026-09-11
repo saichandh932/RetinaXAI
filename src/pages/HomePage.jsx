@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useApp } from '../App.jsx'
+import { REVIEW_QUEUE, getReviewedQueueIds } from '../data/reviewQueue.js'
 import {
   Eye, PlusCircle, Clock, FileText, BarChart2,
   Cpu, TrendingUp, CheckCircle, XCircle,
@@ -29,15 +30,11 @@ export default function HomePage() {
   const { role } = useApp()
   const navigate = useNavigate()
   const [reviewedIds, setReviewedIds] = useState(() => {
-    try {
-      return JSON.parse(localStorage.getItem('dr_reviewed_queue_ids') || '[]')
-    } catch {
-      return []
-    }
+    return getReviewedQueueIds()
   })
   const now = new Date()
   const dateStr = now.toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
-  const pendingReviewCount = RECENT_SCREENINGS.filter(row => row.status === 'PENDING REVIEW' && !reviewedIds.includes(row.id)).length
+  const pendingReviewCount = REVIEW_QUEUE.filter(row => !reviewedIds.includes(row.id)).length
 
   useEffect(() => {
     const handleReviewCompleted = event => {

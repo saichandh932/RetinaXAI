@@ -1,6 +1,7 @@
-import React from 'react'
+import React, { useEffect, useState } from 'react'
 import { NavLink, useLocation } from 'react-router-dom'
 import { useApp } from '../App.jsx'
+import { REVIEW_QUEUE, getReviewedQueueIds } from '../data/reviewQueue.js'
 import {
   Eye, Home, PlusCircle, Activity, FileText, Users,
   BarChart2, Cpu, PlayCircle, Settings, Clock,
@@ -45,6 +46,17 @@ export default function Sidebar() {
   const { role, online, pendingSync, setPendingSync, sidebarOpen } = useApp()
   const location = useLocation()
   const navItems = NAV_ITEMS[role] || NAV_ITEMS.operator
+  const [reviewedCount, setReviewedCount] = useState(() => {
+    return getReviewedQueueIds().length
+  })
+
+  useEffect(() => {
+    const handleReviewCompleted = () => {
+      setReviewedCount(previous => previous + 1)
+    }
+    window.addEventListener('dr-review-completed', handleReviewCompleted)
+    return () => window.removeEventListener('dr-review-completed', handleReviewCompleted)
+  }, [])
 
   const handleSync = () => {
     setTimeout(() => setPendingSync(0), 1200)
@@ -98,7 +110,7 @@ export default function Sidebar() {
               <Icon size={16} className="nav-icon" />
               <span style={{ flex: 1 }}>{item.label}</span>
               {item.badge && (
-                <span className="sidebar-nav-badge">{item.badge}</span>
+                <span className="sidebar-nav-badge">{Math.max(0, REVIEW_QUEUE.length - reviewedCount)}</span>
               )}
             </NavLink>
           )
